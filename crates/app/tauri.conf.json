@@ -49,7 +49,8 @@
       "../../bin/sing-box.exe": "sing-box.exe",
       "../../bin/xray.exe": "xray.exe",
       "../../bin/flexconnect-service.exe": "flexconnect-service.exe",
-      "../../bin/flexconnect.exe": "flexconnect.exe"
+      "../../bin/flexconnect.exe": "flexconnect.exe",
+      "../../bin/WebView2Loader.dll": "WebView2Loader.dll"
     },
     "windows": {
       "webviewInstallMode": {

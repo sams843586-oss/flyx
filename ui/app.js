@@ -608,6 +608,7 @@ window.addEventListener('flyx-background', syncPageMascots);
 function applyTheme(theme) {
   state.preferences.theme = ['light','dark','flyx'].includes(theme) ? theme : 'flyx';
   document.documentElement.dataset.theme = state.preferences.theme;
+  if(window.FlyxAndroid)invoke('sync_theme',{theme:state.preferences.theme}).catch(()=>{});
   document.querySelectorAll('[data-theme-choice]').forEach(button => {
     const active = button.dataset.themeChoice === state.preferences.theme;
     button.classList.toggle('active', active);

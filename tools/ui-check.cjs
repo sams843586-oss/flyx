@@ -152,7 +152,7 @@ const path = require('path');
   if(await evaluate("$('update-title').textContent!==t('upToDate')||!$('update-install').hidden"))throw Error('No-update state incorrect');
   await evaluate("$('update-later').click()");
   if(fs.existsSync('ui/wasm/flyx_wasm.js')){
-    const valid=await evaluate(`(async()=>{const wasm=await import('./wasm/flyx_wasm.js');await wasm.default();const parsed=JSON.parse(wasm.parse_source('vless://test-uuid@example.com:443?security=tls#Wasm'));const request={node:parsed.nodes[0].node,mode:'tun',split:'only',apps:['org.example.browser']};const plan=JSON.parse(wasm.android_plan(JSON.stringify(request),2080,20808));return parsed.nodes.length===1&&plan.xray!==null&&plan.singbox.inbounds[0].listen_port===2080&&!plan.singbox.route.rules.some(r=>r.process_name);})()`);
+    const valid=await evaluate(`(async()=>{const wasm=await import('./wasm/flyx_wasm.js');await wasm.default();const parsed=JSON.parse(wasm.parse_source('vless://test-uuid@example.com:443?security=tls#Wasm'));const request={node:parsed.nodes[0].node,mode:'tun',split:'only',apps:['org.example.browser']};const plan=JSON.parse(wasm.android_plan(JSON.stringify(request),2080,20808));return parsed.nodes.length===1&&plan.xray!==null&&plan.singbox.inbounds[0].listen_port===2080&&plan.singbox.route.auto_detect_interface===false&&!plan.singbox.route.rules.some(r=>r.process_name);})()`);
     if(!valid)throw Error('Android shared Rust/Wasm config incorrect');
   }
   console.log('Updater nine languages/safe notes/current version and Android Wasm: OK');

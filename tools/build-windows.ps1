@@ -14,6 +14,10 @@ try {
     foreach($taskName in @('flexconnect-service.exe','flexconnect.exe')) {
         Copy-Item -LiteralPath (Join-Path $taskRelease $taskName) -Destination (Join-Path $taskRoot ('bin/'+$taskName)) -Force
     }
+    $taskFullMetadata=cargo metadata --format-version 1 | ConvertFrom-Json
+    $taskWebviewPackage=$taskFullMetadata.packages | Where-Object { $_.name -eq 'webview2-com-sys' } | Select-Object -First 1
+    $taskLoader=Join-Path (Split-Path -Parent $taskWebviewPackage.manifest_path) 'x64/WebView2Loader.dll'
+    Copy-Item -LiteralPath $taskLoader -Destination (Join-Path $taskRoot 'bin/WebView2Loader.dll') -Force
     if (!$SkipTests) { cargo test --workspace; if ($LASTEXITCODE) {throw 'Tests failed'} }
     cargo build --release --workspace
     if ($LASTEXITCODE) {throw 'Rust build failed'}

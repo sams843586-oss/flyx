@@ -24,6 +24,9 @@ pub fn android_plan(request:&str,proxy_port:u16,xray_port:u16)->Result<String,Js
     req.mode=TunnelMode::Proxy;req.proxy_port=proxy_port;req.split=SplitMode::All;req.apps.clear();
     let opts=req.options().map_err(|e|JsValue::from_str(&e))?;
     let mut plan=engine::plan(&req.node,&opts,xray_port).map_err(|e|JsValue::from_str(&e.to_string()))?;
+    // Android's VpnService already excludes this UID from its own VPN. Desktop
+    // interface auto-detection unnecessarily enforces a forbidden netlink monitor.
+    plan.singbox["route"]["auto_detect_interface"]=json!(false);
     for section in ["route","dns"] {
         if let Some(rules)=plan.singbox[section]["rules"].as_array_mut(){rules.retain(|rule|rule.get("process_name").is_none());}
     }

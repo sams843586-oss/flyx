@@ -379,6 +379,12 @@ button.card:active { transform: scale(0.98); }
 .update-panel progress { width: 100%; accent-color: var(--accent); margin-top: 12px; }
 #check-updates { margin-bottom: 10px; }
 .android .window-buttons { display: none; }
-.android .titlebar { padding-inline: var(--page-pad); }
+.android { --page-pad: 18px; }
+.android body { padding-top: var(--android-safe-top,0px); padding-bottom: var(--android-safe-bottom,0px); border: 0; border-radius: 0; box-shadow: none; }
+.android .titlebar { height: 52px; padding-inline: var(--page-pad); }
 .android .page { -webkit-overflow-scrolling: touch; }
 .android #seg-mode[hidden], .android label[hidden] { display:none; }
+.android .tabbar { margin: 8px 14px 4px; border-radius: 22px; }
+.android .glass { border-color: color-mix(in srgb,var(--edge-soft) 45%,transparent); }
+.android .page-heading { min-height: 92px; }
+.android [data-page-mascot] { width: 100px; height:100px; flex-basis:100px; }
