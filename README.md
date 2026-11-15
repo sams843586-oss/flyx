@@ -79,3 +79,11 @@ bash tools/build-linux.sh
 ## Лицензия
 
 Код — [GPL-3.0](LICENSE). [Сторонние компоненты и материалы](THIRD_PARTY_NOTICES.md).
+
+### Windows service installation
+
+The GUI can be installed in a custom directory. The installer keeps the privileged
+service and both VPN cores in the native `Program Files\FlyxService` directory,
+resolved through the Windows Known Folders API. Uninstall removes the service and
+its managed files while preserving user subscriptions and preferences. Installation
+failures are written in UTF-8 to `Program Files\FlyxService\install-error.log`.

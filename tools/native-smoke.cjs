@@ -51,6 +51,12 @@ async function run(args,port){
     await evaluate("showPage('home')");
     if(await evaluate("pageMascots.some(n=>!n.getAttribute('src').endsWith('-still.png'))"))throw Error('Hidden native page GIF kept animating');
     console.log('Native server/rules GIFs and tab hiding: OK');
+    if(process.argv.includes('--release-check')) {
+      const update=await evaluate('__TAURI__.core.invoke("check_update")');
+      if(update!==null)throw Error('Current release unexpectedly reports a newer version');
+      console.log('Live signed GitHub release endpoint: current version correctly reports no update');
+    }
+
   }
   if(process.argv.includes('--live-import') && !args.length) {
     const statePath=path.join(process.env.APPDATA,'FlexConnect/state.json');

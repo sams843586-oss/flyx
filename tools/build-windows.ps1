@@ -1,4 +1,4 @@
-param([switch]$SkipTests)
+param([switch]$SkipTests, [string]$OutputDirectory = '')
 $ErrorActionPreference='Stop'
 $taskRoot=Split-Path -Parent $PSScriptRoot
 Push-Location $taskRoot
@@ -33,7 +33,7 @@ try {
         else { npx --yes @tauri-apps/cli@2.12.4 build --bundles nsis }
         if ($LASTEXITCODE) {throw 'Installer build failed'}
     } finally { Pop-Location }
-    $taskOutput=Join-Path $taskRoot 'output/Release'
+    $taskOutput=if ($OutputDirectory) { $OutputDirectory } else { Join-Path $taskRoot 'output/Release' }
     New-Item -ItemType Directory -Force $taskOutput | Out-Null
-    Get-ChildItem (Join-Path $taskRelease 'bundle/nsis') -File | Where-Object { $_.Name -match '\.(exe|sig)$' } | Copy-Item -Destination $taskOutput
+    Get-ChildItem (Join-Path $taskRelease 'bundle/nsis') -File | Where-Object { $_.Name -like ('Flyx_'+(Get-Content (Join-Path $taskRoot 'crates/app/tauri.conf.json') -Raw | ConvertFrom-Json).version+'_*') -and $_.Name -match '\.(exe|sig)$' } | Copy-Item -Destination $taskOutput
 } finally { Pop-Location }

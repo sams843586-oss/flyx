@@ -136,9 +136,33 @@ fn run_console() -> AnyResult<()> {
 
 // ---- установка ----
 
+// Resolve the native system folder through Windows, never through the environment
+// inherited from the 32-bit NSIS installer.
+fn known_folder(id: &windows_sys::core::GUID) -> std::io::Result<PathBuf> {
+    use std::os::windows::ffi::OsStringExt;
+    use windows_sys::Win32::{System::Com::CoTaskMemFree, UI::Shell::SHGetKnownFolderPath};
+    let mut value = std::ptr::null_mut();
+    let result = unsafe { SHGetKnownFolderPath(id, 0, std::ptr::null_mut(), &mut value) };
+    if result < 0 { return Err(std::io::Error::from_raw_os_error(result)); }
+    let path = unsafe {
+        let mut len = 0;
+        while *value.add(len) != 0 { len += 1; }
+        let path = PathBuf::from(OsString::from_wide(std::slice::from_raw_parts(value, len)));
+        CoTaskMemFree(value.cast());
+        path
+    };
+    Ok(path)
+}
+
 fn install_dir() -> AnyResult<PathBuf> {
-    let base = std::env::var_os("ProgramFiles").ok_or("не задана переменная ProgramFiles")?;
-    Ok(PathBuf::from(base).join("FlexConnect"))
+    use windows_sys::Win32::UI::Shell::FOLDERID_ProgramFilesX64;
+    Ok(known_folder(&FOLDERID_ProgramFilesX64)?.join("FlyxService"))
+}
+
+fn copy_unless_same(from: &Path, to: &Path) -> std::io::Result<()> {
+    if to.exists() && from.canonicalize()? == to.canonicalize()? { return Ok(()); }
+    std::fs::copy(from, to)?;
+    Ok(())
 }
 
 fn find_core(name: &str) -> AnyResult<PathBuf> {
@@ -150,75 +174,60 @@ fn find_core(name: &str) -> AnyResult<PathBuf> {
 }
 
 fn install() -> AnyResult<()> {
+    // Validate the complete bundle before stopping any existing installation.
+    let source = std::env::current_exe()?;
+    let cores = CORES.into_iter().map(find_core).collect::<AnyResult<Vec<_>>>()?;
     let dir = install_dir()?;
-    let manager = ServiceManager::local_computer(
-        None::<&str>,
-        ServiceManagerAccess::CONNECT | ServiceManagerAccess::CREATE_SERVICE,
-    )
-    .map_err(|e| format!("нет доступа к диспетчеру служб (нужны права администратора): {e}"))?;
-
-    // сначала убеждаемся, что всё на месте, и только потом трогаем систему
-    let mut cores = Vec::new();
-    for core in CORES {
-        cores.push((find_core(core)?, dir.join(core)));
-    }
+    let manager = ServiceManager::local_computer(None::<&str>,
+        ServiceManagerAccess::CONNECT | ServiceManagerAccess::CREATE_SERVICE)?;
+    unregister()?;
+    // Only the service and its cores run as SYSTEM. They must live in a
+    // protected folder even when the GUI is installed on another drive.
     std::fs::create_dir_all(&dir)?;
     let target = dir.join(SELF_EXE);
-    std::fs::copy(std::env::current_exe()?, &target)?;
-    for (from, to) in cores {
-        std::fs::copy(from, to)?;
+    copy_unless_same(&source, &target)?;
+    for (source, name) in cores.iter().zip(CORES) {
+        copy_unless_same(source, &dir.join(name))?;
     }
-
     let info = ServiceInfo {
-        name: OsString::from(SERVICE_NAME),
-        display_name: OsString::from(DISPLAY_NAME),
-        service_type: ServiceType::OWN_PROCESS,
-        start_type: ServiceStartType::AutoStart,
-        error_control: ServiceErrorControl::Normal,
-        executable_path: target,
-        launch_arguments: vec![],
-        dependencies: vec![],
-        account_name: None,
-        account_password: None,
+        name: SERVICE_NAME.into(), display_name: DISPLAY_NAME.into(),
+        service_type: ServiceType::OWN_PROCESS, start_type: ServiceStartType::AutoStart,
+        error_control: ServiceErrorControl::Normal, executable_path: target,
+        launch_arguments: vec![], dependencies: vec![], account_name: None, account_password: None,
     };
-    let service = manager.create_service(&info, ServiceAccess::CHANGE_CONFIG | ServiceAccess::START)?;
-    service.set_description(DESCRIPTION)?;
-    service.start::<&str>(&[])?;
-    println!("Служба установлена в {} и запущена.", dir.display());
+    let service = manager.create_service(&info,
+        ServiceAccess::CHANGE_CONFIG | ServiceAccess::START | ServiceAccess::DELETE)?;
+    let started = service.set_description(DESCRIPTION).and_then(|_| service.start::<&str>(&[]));
+    if let Err(error) = started {
+        let _ = service.delete();
+        return Err(error.into());
+    }
+    println!("Flyx service installed and started.");
     Ok(())
 }
 
 fn uninstall() -> AnyResult<()> {
-    let manager = ServiceManager::local_computer(None::<&str>, ServiceManagerAccess::CONNECT)
-        .map_err(|e| format!("нет доступа к диспетчеру служб (нужны права администратора): {e}"))?;
-    let service = manager.open_service(
-        SERVICE_NAME,
-        ServiceAccess::QUERY_STATUS | ServiceAccess::STOP | ServiceAccess::DELETE,
-    )?;
-    if service.query_status()?.current_state != ServiceState::Stopped {
-        service.stop()?;
-        for _ in 0..50 {
-            if service.query_status()?.current_state == ServiceState::Stopped {
-                break;
-            }
-            std::thread::sleep(Duration::from_millis(100));
+    unregister()?;
+    let dir = install_dir()?;
+    // Remove only our managed files, never the GUI directory or user settings.
+    for file in CORES.iter().copied().chain([SELF_EXE]) {
+        match std::fs::remove_file(dir.join(file)) {
+            Ok(()) => (),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => (),
+            Err(e) => return Err(e.into()),
         }
     }
-    service.delete()?;
-    drop(service);
-
-    let dir = install_dir()?;
-    // удаляем только то, что сами положили
-    for file in CORES.iter().copied().chain([SELF_EXE]) {
-        std::fs::remove_file(dir.join(file)).ok();
+    match std::fs::remove_dir_all(dir.join("run")) {
+        Ok(()) => (),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => (),
+        Err(e) => return Err(e.into()),
     }
-    std::fs::remove_dir_all(dir.join("run")).ok();
-    std::fs::remove_dir(&dir).ok();
-    println!("Служба удалена.");
+    // Other files, if present, are deliberately preserved.
+    let _ = std::fs::remove_dir(dir);
     Ok(())
 }
 
-// Installer entry points deliberately do not delete application files.
+// Stop and remove the SCM registration before replacing service binaries.
 fn unregister() -> AnyResult<()> {
     let manager = ServiceManager::local_computer(None::<&str>, ServiceManagerAccess::CONNECT)?;
     let service = match manager.open_service(SERVICE_NAME,
@@ -237,26 +246,31 @@ fn unregister() -> AnyResult<()> {
         }
     }
     service.delete()?;
-    Ok(())
+    drop(service);
+    // DeleteService is asynchronous while another process holds a handle.
+    let deadline = std::time::Instant::now() + Duration::from_secs(20);
+    loop {
+        match manager.open_service(SERVICE_NAME, ServiceAccess::QUERY_STATUS) {
+            Err(windows_service::Error::Winapi(e)) if e.raw_os_error() == Some(1060) => return Ok(()),
+            Err(windows_service::Error::Winapi(e)) if e.raw_os_error() == Some(1072) => (),
+            Err(e) => return Err(e.into()),
+            Ok(_) => (),
+        }
+        if std::time::Instant::now() >= deadline { return Err("Service deletion timed out; close Services and retry.".into()); }
+        std::thread::sleep(Duration::from_millis(100));
+    }
 }
 
-fn register() -> AnyResult<()> {
-    let dir = exe_dir()?.canonicalize()?;
-    let program_files = PathBuf::from(std::env::var_os("ProgramFiles").ok_or("ProgramFiles missing")?).canonicalize()?;
-    if !dir.starts_with(program_files) { return Err("служба должна быть установлена внутри Program Files".into()); }
-    for core in CORES { if !dir.join(core).is_file() { return Err(format!("не найден {core}").into()); } }
-    unregister()?;
-    let manager = ServiceManager::local_computer(None::<&str>, ServiceManagerAccess::CONNECT | ServiceManagerAccess::CREATE_SERVICE)?;
-    let info = ServiceInfo {
-        name: SERVICE_NAME.into(), display_name: DISPLAY_NAME.into(),
-        service_type: ServiceType::OWN_PROCESS, start_type: ServiceStartType::AutoStart,
-        error_control: ServiceErrorControl::Normal, executable_path: std::env::current_exe()?,
-        launch_arguments: vec![], dependencies: vec![], account_name: None, account_password: None,
-    };
-    let service = manager.create_service(&info, ServiceAccess::CHANGE_CONFIG | ServiceAccess::START)?;
-    service.set_description(DESCRIPTION)?;
-    service.start::<&str>(&[])?;
-    Ok(())
+fn register() -> AnyResult<()> { install() }
+
+fn write_install_error(command: &str, error: &dyn std::fmt::Display) {
+    // The helper output is UTF-8, but nsExec decodes console output through the
+    // Windows code page. Keep the dialog localized in NSIS and save details here.
+    if let Ok(dir) = install_dir() {
+        if std::fs::create_dir_all(&dir).is_ok() {
+            let _ = std::fs::write(dir.join("install-error.log"), format!("{command}: {error}\n"));
+        }
+    }
 }
 
 pub fn run() {
@@ -273,7 +287,42 @@ pub fn run() {
         Some(other) => Err(format!("неизвестная команда {other}: есть run, install, uninstall").into()),
     };
     if let Err(e) = result {
-        eprintln!("Ошибка: {e}");
+        if matches!(command.as_deref(), Some("install" | "uninstall" | "register" | "unregister")) {
+            write_install_error(command.as_deref().unwrap(), &e);
+        }
+        eprintln!("Error: {e}");
         std::process::exit(1);
+    }
+}
+
+#[cfg(test)]
+mod installer_tests {
+    use super::*;
+
+    #[test]
+    fn native_service_path_ignores_nsis_environment() {
+        // Reproduce the 32-bit installer's environment without changing services.
+        let old = std::env::var_os("ProgramFiles");
+        let expected = install_dir().unwrap();
+        std::env::set_var("ProgramFiles", r"Z:\wrong-program-files-x86");
+        let actual = install_dir();
+        match old { Some(value) => std::env::set_var("ProgramFiles", value), None => std::env::remove_var("ProgramFiles") }
+        assert_eq!(actual.unwrap(), expected);
+        assert!(expected.is_absolute());
+        assert_eq!(expected.file_name().unwrap(), "FlyxService");
+    }
+
+    #[test]
+    fn copying_service_to_itself_does_not_truncate_it() {
+        let dir = std::env::temp_dir().join(format!("flyx-copy-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let source = dir.join("service.exe");
+        let dest = dir.join("copy.exe");
+        std::fs::write(&source, b"service-payload").unwrap();
+        copy_unless_same(&source, &source).unwrap();
+        copy_unless_same(&source, &dest).unwrap();
+        assert_eq!(std::fs::read(&source).unwrap(), b"service-payload");
+        assert_eq!(std::fs::read(&dest).unwrap(), b"service-payload");
+        std::fs::remove_dir_all(dir).unwrap();
     }
 }

@@ -17,7 +17,7 @@ parser.add_argument('--cache', type=Path, default=ROOT / 'output/vendor/linux-co
 args = parser.parse_args()
 args.output.mkdir(parents=True, exist_ok=True)
 args.cache.mkdir(parents=True, exist_ok=True)
-VERSION = '0.1.0'
+VERSION = '0.1.1'
 
 CORES = [
     ('sing-box', 'https://github.com/SagerNet/sing-box/releases/download/v1.14.4/sing-box-1.14.4-linux-amd64.tar.gz',
