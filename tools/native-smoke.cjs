@@ -13,6 +13,7 @@ async function run(args,port){
   const send=(method,params={})=>new Promise((resolve,reject)=>{const id=++seq;pending.set(id,{resolve,reject});ws.send(JSON.stringify({id,method,params}));});
   const evaluate=async expression=>{const r=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.exception?.description||r.exceptionDetails.text);return r.result.value;};
   await send('Runtime.enable');
+  await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});
   for(let i=0;i<100;i++){if(await evaluate('!!window.__TAURI__ && !!window.FlyxCountries && !!window.FlyxStickers'))break;await new Promise(r=>setTimeout(r,100));}
   await new Promise(r=>setTimeout(r,1200));
   if(settingsTest && port===9225){
@@ -31,13 +32,13 @@ async function run(args,port){
     await evaluate("showPage('settings')");
     await new Promise(r=>setTimeout(r,400));
     await evaluate("$('settings-mascot').decode()");
-    if(await evaluate("!$('settings-mascot').getAttribute('src').endsWith('.webp') || $('settings-mascot').naturalWidth!==256"))throw Error('Settings mascot did not animate');
+    if(await evaluate("!$('settings-mascot').getAttribute('src').endsWith('.webp') || $('settings-mascot').naturalWidth!==256"))throw Error('Settings mascot did not animate: '+await evaluate("JSON.stringify({src:$('settings-mascot').getAttribute('src'),width:$('settings-mascot').naturalWidth,visible:visibleMascots.has($('settings-mascot')),hidden:document.hidden,background:window.FlyxBackground,reduced:settingsMotion.matches,pageHidden:$('page-settings').hidden})"));
     const {data}=await send('Page.captureScreenshot',{format:'png'});
     fs.writeFileSync('output/flyx-settings-mascot.png',Buffer.from(data,'base64'));
     await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
     await new Promise(r=>setTimeout(r,100));
     if(await evaluate("!$('settings-mascot').getAttribute('src').endsWith('-still.png')"))throw Error('Settings mascot ignored reduced motion');
-    await send('Emulation.setEmulatedMedia',{features:[]});
+    await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});
     await evaluate("showPage('home')");
     if(await evaluate("!$('settings-mascot').getAttribute('src').endsWith('-still.png')"))throw Error('Hidden settings mascot kept animating');
     console.log('Native settings mascot: animated when visible, static when hidden/reduced motion: OK');
