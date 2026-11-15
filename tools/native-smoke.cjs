@@ -53,8 +53,9 @@ async function run(args,port){
     console.log('Native server/rules GIFs and tab hiding: OK');
     if(process.argv.includes('--release-check')) {
       const update=await evaluate('__TAURI__.core.invoke("check_update")');
-      if(update!==null)throw Error('Current release unexpectedly reports a newer version');
-      console.log('Live signed GitHub release endpoint: current version correctly reports no update');
+      const expected=process.argv.find(arg=>arg.startsWith('--expected-update='))?.split('=')[1];
+      if(expected ? update?.version!==expected : update!==null)throw Error('Unexpected update result: '+JSON.stringify(update));
+      console.log('Live signed GitHub release endpoint: '+(expected?'new version '+expected+' is available':'current version correctly reports no update'));
     }
 
   }
