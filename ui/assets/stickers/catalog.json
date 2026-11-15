@@ -1,0 +1,18 @@
+{
+  "source": "NewsEmoji_tgs.zip",
+  "mapping": {
+    "connect": "003",
+    "disconnect": "006",
+    "apply": "024",
+    "add": "066",
+    "remove": "071",
+    "loading": "080",
+    "server": "014",
+    "home": "052",
+    "rules": "054",
+    "ping": "018"
+  },
+  "generated": {
+    "settings": "Animated blue/violet vector gear, based on the repo settings icon"
+  }
+}

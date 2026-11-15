@@ -1,0 +1,20 @@
+plugins { id 'com.android.application' }
+android {
+  namespace 'app.flyx.android'
+  compileSdk 34
+  defaultConfig { applicationId 'app.flyx.android'; minSdk 29; targetSdk 34; versionCode 1; versionName '0.1.0'; ndk { abiFilters 'arm64-v8a' } }
+  signingConfigs {
+    release {
+      if (System.getenv('FLYX_ANDROID_KEYSTORE')) {
+        storeFile file(System.getenv('FLYX_ANDROID_KEYSTORE'))
+        storePassword System.getenv('FLYX_ANDROID_STORE_PASSWORD')
+        keyAlias 'flyx'
+        keyPassword System.getenv('FLYX_ANDROID_KEY_PASSWORD')
+      }
+    }
+  }
+  buildTypes { release { signingConfig signingConfigs.release; minifyEnabled false } }
+  sourceSets.main.assets.srcDir '../../ui'
+  packaging { jniLibs { useLegacyPackaging true; keepDebugSymbols += ['**/libflyx_*.so'] } }
+}
+dependencies { implementation files('libs/hev-socks5-tunnel.aar') }

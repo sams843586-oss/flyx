@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flyx</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-state="idle">
+
+<!-- Преломление «жидкого стекла»: искажает то, что проходит под панелью -->
+<svg class="defs" width="0" height="0" aria-hidden="true">
+  <filter id="lens" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="0.006 0.011" numOctaves="2" seed="11" result="noise"/>
+    <feGaussianBlur in="noise" stdDeviation="3" result="soft"/>
+    <feDisplacementMap in="SourceGraphic" in2="soft" scale="26" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<div class="backdrop" aria-hidden="true"><i class="orb a"></i><i class="orb b"></i><i class="orb c"></i></div>
+
+<header class="titlebar" data-tauri-drag-region>
+  <span class="brand" data-tauri-drag-region><img src="assets/logo-cutout-v2.png" alt="" draggable="false"> flyx <span class="brand-caption">VPN CLIENT</span></span>
+  <div class="window-buttons">
+    <button id="win-min" class="win" aria-label="Свернуть" data-i18n-aria-label="minimize"><svg viewBox="0 0 12 12"><path d="M2 6h8"/></svg></button>
+    <button id="win-close" class="win close" aria-label="Скрыть в трей" data-i18n-aria-label="hideTray" title="Скрыть в трей — VPN продолжит работать" data-i18n-title="hideHint"><svg viewBox="0 0 12 12"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg></button>
+  </div>
+</header>
+
+<main>
+  <!-- Главная -->
+  <section class="page" id="page-home">
+    <div class="hero">
+      <div class="status">
+        <div id="status-title" class="status-title" data-i18n="idle">Отключено</div>
+        <div id="status-sub" class="status-sub" data-i18n="tapConnect">Нажмите, чтобы подключиться</div>
+      </div>
+      <div class="mascot-stage"><video id="mascot" src="assets/disconnected.webm" loop muted playsinline disablepictureinpicture preload="auto" aria-hidden="true"></video></div>
+      <button id="power" class="power" aria-label="Подключить или отключить" data-i18n-aria-label="powerLabel"><span class="power-action" id="power-action"><span class="button-sticker" id="power-sticker" data-sticker="connect" aria-hidden="true"></span><span id="power-label" data-i18n="connect">Подключиться</span></span></button>
+    </div>
+
+    <div id="notice" class="glass notice" hidden>
+      <div id="notice-text"></div>
+      <button id="notice-logs" class="link" data-i18n="logs">Журнал</button>
+    </div>
+
+    <button id="server-card" class="glass card row">
+      <span class="card-icon" id="server-symbol"></span>
+      <span class="card-text">
+        <span id="server-name" class="card-title" data-i18n="noServer">Сервер не выбран</span>
+        <span id="server-sub" class="card-sub" data-i18n="addSource">Добавьте подписку или ключ</span>
+      </span>
+      <svg class="chevron" viewBox="0 0 12 12"><path d="M4 2l4 4-4 4"/></svg>
+    </button>
+
+    <div class="chips">
+      <button id="chip-mode" class="glass chip"></button>
+      <button id="chip-split" class="glass chip"></button>
+    </div>
+    <button id="ad-slot" class="ad-slot" type="button" hidden><span class="ad-label"><span id="ad-label"></span><span id="ad-advertiser"></span></span><span class="ad-art"><img id="ad-image" alt="" draggable="false"></span></button>
+  </section>
+
+  <!-- Серверы -->
+  <section class="page" id="page-servers" hidden>
+    <div class="page-heading">
+      <h2 data-i18n="servers">Серверы</h2>
+      <img id="servers-mascot" data-page-mascot data-animated-src="assets/page-mascot.webp" src="assets/settings-mascot-still.png" width="116" height="116" alt="" aria-hidden="true" draggable="false">
+    </div>
+    <form id="add-form" class="glass field">
+      <input id="add-input" type="text" dir="ltr" placeholder="Ссылка на подписку или ключ" data-i18n-placeholder="sourcePlaceholder" autocomplete="off" spellcheck="false">
+      <button id="add-button" type="submit" class="pill has-sticker"><span class="button-sticker" data-sticker="add" aria-hidden="true"></span><span data-i18n="add">Добавить</span></button>
+    </form>
+    <div id="add-message" class="hint" hidden></div>
+    <div id="profiles"></div>
+  </section>
+
+  <!-- Правила -->
+  <section class="page" id="page-rules" hidden>
+    <div class="page-heading">
+      <h2 data-i18n="rules">Правила</h2>
+      <img id="rules-mascot" data-page-mascot data-animated-src="assets/page-mascot.webp" src="assets/settings-mascot-still.png" width="116" height="116" alt="" aria-hidden="true" draggable="false">
+    </div>
+
+    <div class="label" data-i18n="scope">Что защищать</div>
+    <div class="glass segment" id="seg-mode">
+      <button data-value="tun" data-i18n="allDevice">Весь компьютер</button>
+      <button data-value="proxy" data-i18n="localProxy">Локальный прокси</button>
+    </div>
+    <div id="mode-hint" class="hint"></div>
+
+    <div class="label" data-i18n="apps">Приложения</div>
+    <div class="glass segment" id="seg-split">
+      <button data-value="all" data-i18n="all">Все</button>
+      <button data-value="except" data-i18n="except">Кроме</button>
+      <button data-value="only" data-i18n="only">Только</button>
+    </div>
+    <div id="split-hint" class="hint"></div>
+    <div id="apps-box" hidden>
+      <form id="app-form" class="glass field">
+        <input id="app-input" type="text" dir="ltr" placeholder="chrome.exe" autocomplete="off" spellcheck="false">
+        <button type="submit" class="pill has-sticker"><span class="button-sticker" data-sticker="add" aria-hidden="true"></span><span data-i18n="add">Добавить</span></button>
+      </form>
+      <div id="apps" class="tags"></div>
+    </div>
+
+    <div class="label" data-i18n="directSites">Сайты напрямую</div>
+    <label class="glass card row toggle-row">
+      <span class="card-text">
+        <span class="card-title" data-i18n="ruSites">Российские сайты</span>
+        <span class="card-sub" data-i18n="ruHint">.ru, .рф, Яндекс, ВКонтакте — мимо VPN</span>
+      </span>
+      <input id="ru-toggle" type="checkbox" class="switch">
+    </label>
+    <details class="ru-catalog glass"><summary id="ru-catalog-title" data-i18n="serviceList">Список сервисов</summary><div id="ru-catalog-content"></div></details>
+    <form id="domain-form" class="glass field">
+      <input id="domain-input" type="text" dir="ltr" placeholder="example.com" autocomplete="off" spellcheck="false">
+      <button type="submit" class="pill has-sticker"><span class="button-sticker" data-sticker="add" aria-hidden="true"></span><span data-i18n="add">Добавить</span></button>
+    </form>
+    <div id="domains" class="tags"></div>
+  </section>
+  <section class="page" id="page-settings" hidden>
+    <div class="page-heading">
+      <h2 data-i18n="settings">Настройки</h2>
+      <img id="settings-mascot" data-page-mascot data-animated-src="assets/settings-mascot.webp" src="assets/settings-mascot-still.png" width="116" height="116" alt="" aria-hidden="true" draggable="false">
+    </div>
+    <div class="label" data-i18n="theme">Оформление</div>
+    <p class="hint theme-hint" data-i18n="themeHint">Выберите тему приложения. Изменения сохраняются автоматически.</p>
+    <div class="theme-options" role="group" aria-label="Тема приложения" data-i18n-aria-label="themeLabel">
+      <button class="theme-option glass" data-theme-choice="light" aria-pressed="false"><span class="theme-preview preview-light"><i></i><i></i><i></i></span><span data-i18n="light">Светлая</span></button>
+      <button class="theme-option glass" data-theme-choice="dark" aria-pressed="false"><span class="theme-preview preview-dark"><i></i><i></i><i></i></span><span data-i18n="dark">Тёмная</span></button>
+      <button class="theme-option glass active" data-theme-choice="flyx" aria-pressed="true"><span class="theme-preview preview-flyx"><i></i><i></i><i></i></span><span>Flyx</span></button>
+    </div>
+    <div class="label" data-i18n="language">Язык</div>
+    <div class="language-picker">
+      <button type="button" id="language-button" class="glass language-field" aria-haspopup="listbox" aria-expanded="false" aria-controls="language-menu" aria-label="Язык приложения" data-i18n-aria-label="language">
+        <span class="button-sticker" data-sticker="server" aria-hidden="true"></span>
+        <span class="language-current"><span id="language-name" dir="auto"></span><small id="language-code"></small></span>
+        <svg class="chevron language-chevron" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4"/></svg>
+      </button>
+      <div id="language-menu" class="language-menu" role="listbox" hidden></div>
+      <!-- скрытый список хранит значение для автотестов и сценариев -->
+      <select id="language-select" hidden tabindex="-1" aria-hidden="true"></select>
+    </div>
+    <div class="label" data-i18n="startup">При запуске</div>
+    <label class="glass card row toggle-row preference-row"><span class="card-text"><span class="card-title" data-i18n="autoConnect">Автоподключение</span><span class="preference-hint" data-i18n="autoConnectHint">Подключаться к последнему выбранному серверу</span></span><input id="auto-connect" type="checkbox" class="switch"></label>
+    <label class="glass card row toggle-row preference-row"><span class="card-text"><span class="card-title" data-i18n="startHidden">Запуск в трее</span><span class="preference-hint" data-i18n="startHiddenHint">Скрывать окно при следующем запуске</span></span><input id="start-hidden" type="checkbox" class="switch"></label>
+    <div class="label" data-i18n="diagnostics">Помощь</div>
+    <button id="check-updates" class="glass card row"><span class="button-sticker" data-sticker="loading" aria-hidden="true"></span><span class="card-text"><span data-i18n="updates">Обновления</span><small class="preference-hint">Flyx v0.1.0</small></span><span class="settings-log-arrow">›</span></button>
+    <button id="settings-logs" class="glass card row"><span class="button-sticker" data-sticker="rules" aria-hidden="true"></span><span data-i18n="logTitle">Журнал подключения</span><span class="settings-log-arrow">›</span></button>
+    <p class="hint about-app" data-i18n="about">Flyx · VPN-клиент</p>
+  </section>
+</main>
+
+<button id="apply" class="apply has-sticker" hidden><span class="button-sticker" data-sticker="apply" aria-hidden="true"></span><span data-i18n="apply">Применить изменения</span></button>
+
+<nav class="glass tabbar">
+  <span class="tab-thumb" id="tab-thumb"></span>
+  <button class="tab active" data-page="home">
+    <span class="button-sticker" data-sticker="home" aria-hidden="true"></span><span data-i18n="home">Главная</span>
+  </button>
+  <button class="tab" data-page="servers">
+    <span class="button-sticker" data-sticker="server" aria-hidden="true"></span><span data-i18n="servers">Серверы</span>
+  </button>
+  <button class="tab" data-page="rules">
+    <span class="button-sticker" data-sticker="rules" aria-hidden="true"></span><span data-i18n="rules">Правила</span>
+  </button>
+  <button class="tab" data-page="settings"><span class="button-sticker" data-sticker="settings" aria-hidden="true"></span><span data-i18n="settings">Настройки</span></button>
+</nav>
+
+<!-- Журнал -->
+<div id="sheet" class="sheet" hidden>
+  <div class="sheet-shade" id="sheet-shade"></div>
+  <div class="glass sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <div class="sheet-grip" aria-hidden="true"></div>
+    <div class="sheet-head">
+      <span id="sheet-title" data-i18n="logTitle">Журнал подключения</span>
+      <button id="sheet-close" class="icon-button" aria-label="Закрыть" data-i18n-aria-label="close"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg></button>
+    </div>
+    <div class="sheet-tools">
+      <div class="glass segment log-filter" id="log-filter">
+        <button data-value="all" class="active" data-i18n="logAll">Все</button>
+        <button data-value="errors" data-i18n="logErrors">Ошибки</button>
+      </div>
+      <button id="log-copy" class="pill" data-i18n="logCopy">Копировать</button>
+    </div>
+    <div id="log-lines" class="log-list" tabindex="0"></div>
+  </div>
+</div>
+
+<div id="update-sheet" class="sheet" hidden>
+  <div class="sheet-shade" id="update-shade"></div>
+  <div class="glass update-panel" role="dialog" aria-modal="true" aria-labelledby="update-title">
+    <img src="assets/settings-mascot-still.png" width="92" height="92" alt="">
+    <h2 id="update-title" data-i18n="updates">Обновления</h2>
+    <p id="update-version"></p>
+    <p id="update-description" class="hint"></p>
+    <pre id="update-notes"></pre>
+    <progress id="update-progress" max="100" value="0" hidden></progress>
+    <div class="update-actions"><button id="update-later" class="pill" data-i18n="later">Позже</button><button id="update-install" class="pill" data-i18n="updateNow">Обновить</button></div>
+  </div>
+</div>
+<script src="ad-config.js"></script>
+<script src="vendor/lottie_light-5.13.0.min.js"></script>
+<script src="stickers.js"></script>
+<script src="countries.js"></script>
+<script src="ru-services.js"></script>
+<script src="i18n.js"></script>
+<script src="android-bridge.js"></script>
+<script src="app.js"></script>
+<script src="updater.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Flyx
+Comment=VPN client
+Comment[ru]=VPN-клиент Flyx
+Exec=flyx
+Icon=flyx
+Terminal=false
+Categories=Network;
+Keywords=VPN;Proxy;Flyx;
+StartupWMClass=Flyx

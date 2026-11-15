@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+if [ "${1:-}" = configure ]; then
+    getent group flyx >/dev/null || groupadd --system flyx
+    if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != root ] && id "$SUDO_USER" >/dev/null 2>&1; then
+        usermod -a -G flyx "$SUDO_USER"
+    fi
+    if [ -d /run/systemd/system ]; then
+        systemctl daemon-reload
+        systemctl enable --now flyx.service
+    fi
+    echo 'Flyx installed. Add your account to the flyx group, then log out and back in:'
+    echo '  sudo usermod -aG flyx YOUR_USERNAME'
+fi

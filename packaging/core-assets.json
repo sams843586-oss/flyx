@@ -1,0 +1,47 @@
+{
+  "windows": [
+    {
+      "name": "sing-box-1.14.4-windows-amd64.zip",
+      "url": "https://github.com/SagerNet/sing-box/releases/download/v1.14.4/sing-box-1.14.4-windows-amd64.zip",
+      "sha256": "99185d75d314a07dbba4a130c8ad986cbeb629a07927975636b341ca61f991df",
+      "binary": "sing-box.exe",
+      "destination": "bin/sing-box.exe"
+    },
+    {
+      "name": "Xray-windows-64.zip",
+      "url": "https://github.com/XTLS/Xray-core/releases/download/v26.11.9/Xray-windows-64.zip",
+      "sha256": "1262522266337b824f07beb8e1375786b437683b3890105469088f8e17e0a69d",
+      "binary": "xray.exe",
+      "destination": "bin/xray.exe"
+    }
+  ],
+  "android": [
+    {
+      "repo": "SagerNet/sing-box",
+      "tag": "v1.14.4",
+      "name": "sing-box-1.14.4-android-arm64.tar.gz",
+      "url": "https://github.com/SagerNet/sing-box/releases/download/v1.14.4/sing-box-1.14.4-android-arm64.tar.gz",
+      "sha256": "fb3a6c5197f4044f82c8fd75e01ce14c28b6abdd4c3df84bb987d41a962a320f",
+      "binary": "sing-box",
+      "destination": "android/app/src/main/jniLibs/arm64-v8a/libflyx_singbox.so"
+    },
+    {
+      "repo": "XTLS/Xray-core",
+      "tag": "v26.11.9",
+      "name": "Xray-android-arm64-v8a.zip",
+      "url": "https://github.com/XTLS/Xray-core/releases/download/v26.11.9/Xray-android-arm64-v8a.zip",
+      "sha256": "edcefc25b9b3195b11e18624c8269a969d6aabc39c6298a9a5ab29de15d46f3b",
+      "binary": "xray",
+      "destination": "android/app/src/main/jniLibs/arm64-v8a/libflyx_xray.so"
+    },
+    {
+      "repo": "heiher/hev-socks5-tunnel",
+      "tag": "2.20.0",
+      "name": "hev-socks5-tunnel.aar",
+      "url": "https://github.com/heiher/hev-socks5-tunnel/releases/download/2.20.0/hev-socks5-tunnel.aar",
+      "sha256": "ae8a2e96b80b4eccccd037805a4bb4a278090c89dbcae8bc6fcb7634e9a255b9",
+      "binary": "xray",
+      "destination": "android/app/src/main/jniLibs/arm64-v8a/libflyx_xray.so"
+    }
+  ]
+}

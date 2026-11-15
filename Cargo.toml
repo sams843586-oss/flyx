@@ -1,0 +1,11 @@
+[workspace]
+members = ["crates/core", "crates/cli", "crates/service", "crates/app", "crates/wasm"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+
+[profile.release]
+lto = true
+strip = true

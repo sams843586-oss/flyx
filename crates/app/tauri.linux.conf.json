@@ -1,0 +1,11 @@
+{
+  "app": {
+    "windows": [{
+      "label": "main", "title": "Flyx", "width": 420, "height": 760,
+      "minWidth": 360, "minHeight": 640, "resizable": true,
+      "maximizable": false, "decorations": false, "transparent": false,
+      "shadow": true, "center": true, "visible": false
+    }]
+  },
+  "bundle": { "active": false, "createUpdaterArtifacts": false, "resources": [], "icon": ["icons/icon.png"] }
+}

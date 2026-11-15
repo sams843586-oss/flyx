@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+if [ -d /run/systemd/system ]; then
+    case "${1:-}" in
+        remove|deconfigure) systemctl disable --now flyx.service || true ;;
+        upgrade) systemctl stop flyx.service || true ;;
+    esac
+fi

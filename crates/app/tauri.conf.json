@@ -1,0 +1,80 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Flyx",
+  "version": "0.1.0",
+  "identifier": "app.flexconnect.desktop",
+  "build": {
+    "frontendDist": "../../ui"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Flyx",
+        "width": 420,
+        "height": 760,
+        "resizable": true,
+        "maximizable": false,
+        "decorations": false,
+        "transparent": true,
+        "shadow": true,
+        "center": true,
+        "windowEffects": {
+          "effects": [
+            "acrylic"
+          ]
+        },
+        "minWidth": 360,
+        "minHeight": 640,
+        "visible": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; media-src 'self'; connect-src 'self' ipc: http://ipc.localhost"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "icon": [
+      "icons/icon.ico"
+    ],
+    "targets": [
+      "nsis"
+    ],
+    "createUpdaterArtifacts": true,
+    "shortDescription": "Flyx VPN client",
+    "category": "Utility",
+    "resources": {
+      "../../bin/sing-box.exe": "sing-box.exe",
+      "../../bin/xray.exe": "xray.exe",
+      "../../bin/flexconnect-service.exe": "flexconnect-service.exe",
+      "../../bin/flexconnect.exe": "flexconnect.exe"
+    },
+    "windows": {
+      "webviewInstallMode": {
+        "type": "embedBootstrapper"
+      },
+      "nsis": {
+        "installMode": "perMachine",
+        "languages": [
+          "Russian",
+          "English"
+        ],
+        "displayLanguageSelector": true,
+        "installerHooks": "../../packaging/windows/hooks.nsh"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDMxMTYxM0NENzk3MEM0OTcKUldTWHhIQjV6Uk1XTVd0MFhkZUpkZi9ZY0xZYUN3a0pSbC83ZXhkckVtS3hZQzBGMkFkZG00LzgK",
+      "endpoints": [
+        "https://github.com/sams843586-oss/flyx/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}

@@ -1,0 +1,43 @@
+# Build outputs, downloaded cores and generated media
+/target/
+/target-linux/
+/bin/
+/output/
+/promo/
+**/build/
+**/node_modules/
+.gradle/
+.kotlin/
+local.properties
+__pycache__/
+*.pyc
+*.log
+/run/
+config.json
+# Original inputs supplied by the author
+/*.zip
+/*.7z
+/*.rar
+/*.gif
+/*.mp3
+/*.mp4
+/*.wav
+# Local settings, profiles and signing credentials
+/.claude/
+/.cargo/config.toml
+/.idea/
+/.vscode/
+.env
+.env.*
+*.key
+*.key.pub
+*.keystore
+*.jks
+*.pem
+*.p12
+*.pfx
+**/SFPro*.ttf
+**/SFPro*.otf
+android/app/src/main/jniLibs/
+android/app/libs/
+ui/wasm/

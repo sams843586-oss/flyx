@@ -1,0 +1,24 @@
+name: Linux packages
+on:
+  workflow_dispatch:
+  push:
+    paths: ['crates/**', 'ui/**', 'packaging/linux/**', 'tools/*linux*', 'Cargo.*', 'LINUX.md', '.github/workflows/linux.yml']
+permissions:
+  contents: read
+jobs:
+  linux-amd64:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libssl-dev libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev python3
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+      - name: Test and package
+        run: bash tools/build-linux.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Flyx-Linux-amd64
+          path: output/Linux/
